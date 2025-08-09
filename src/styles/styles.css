@@ -1,0 +1,170 @@
+:root{
+  /* Brand */
+  --red:#C1121F;
+
+  /* Light theme (default) */
+  --bg:#FFFFFF;
+  --text:#111111;
+  --muted:#666666;
+  --surface:#FFFFFF;     /* header, cards */
+  --surface-2:#F4F4F5;   /* subtle backgrounds */
+  --border:#E6E6EA;
+  --pill:#F4F4F5;
+
+  /* Spacing */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-5:24px; --space-6:32px; --space-7:48px; --space-8:64px;
+
+  
+}
+
+.app-shell{
+  min-height:100vh;           /* fill the viewport */
+  display:flex;
+  flex-direction:column;      /* header, main, footer stacked */
+  width:100%;
+  align-items:stretch;
+}
+
+.app-shell > *{
+  width:100%;
+  min-width:0;
+}
+
+main{
+  flex:1 0 auto;              /* take remaining space so footer drops to bottom */
+}
+
+/* Make sure header isn't sticky, since you asked it to scroll away */
+header{ position: static; }
+
+
+/* Dark theme override */
+html[data-theme="dark"]{
+  --bg:#0F1011;
+  --text:#F6F7F8;
+  --muted:#B1B4BA;
+  --surface:#16171A;
+  --surface-2:#121315;
+  --border:#2A2E34;
+  --pill:#1F2227;
+}
+
+/* Base */
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  color:var(--text);
+  background:var(--bg);
+  font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  line-height:1.6;
+}
+img{max-width:100%; display:block}
+a{color:var(--red); text-decoration:none}
+a:hover{text-decoration:underline}
+
+.skip-link{
+  position:absolute; top:-1000px; left:0; background:var(--surface); color:var(--text);
+  padding:var(--space-2);
+}
+.skip-link:focus{top:0}
+
+.container{max-width:1100px; margin-inline:auto; padding-inline:var(--space-4)}
+.stack > * + *{margin-top:var(--space-4)}
+.cluster{display:flex; gap:var(--space-3); align-items:center; flex-wrap:wrap}
+
+/* Header / Footer */
+header{
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  position: static;
+}
+.site-brand{display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0}
+nav a{font-weight:600; padding:8px 10px; border-radius:10px}
+nav a[aria-current="page"]{background:var(--surface-2)}
+.theme-toggle{padding:6px 10px; font-weight:700}
+/* Responsive: scales with viewport but never too tiny/huge */
+.logo { width: clamp(60px, 6vw, 100px); height: auto; }
+
+main{padding-block:var(--space-6)}
+
+footer{
+  margin-top:auto;
+  background:var(--surface);
+  color:var(--text);
+  border-top:1px solid var(--border);
+  padding:var(--space-6) 0;
+}
+.footer-inner{display:flex; justify-content:space-between; align-items:center; gap:var(--space-4); flex-wrap:wrap}
+
+/* Type + layout */
+h1,h2,h3{font-weight:800; line-height:1.2; margin:0 0 var(--space-3)}
+.section{padding-block:var(--space-7)}
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:var(--space-5); box-shadow:0 6px 18px rgba(0,0,0,.05);
+}
+html[data-theme="dark"] .card{ box-shadow:none; }
+
+.grid{
+  display:grid; gap:var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+}
+
+/* ...existing code... */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  font-weight:700; padding:10px 16px; border-radius:12px; border:2px solid transparent;
+  background:var(--red); color:#fff; cursor:pointer;
+}
+
+.btn-small {
+  font-size: 0.85em;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.btn:hover{ filter:brightness(0.92); }
+.btn.secondary{ background:var(--surface); color:var(--text); border-color:var(--red) }
+
+.input, textarea{
+  width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border); font:inherit;
+  background:var(--surface); color:var(--text);
+}
+
+.kicker{font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.meta{color:var(--muted); font-size:14px}
+.tags{display:flex; gap:8px; flex-wrap:wrap}
+.tag{background:var(--pill); border-radius:999px; padding:4px 10px; font-weight:700; font-size:12px; color:var(--text)}
+.hr{height:1px; background:var(--border); margin-block:var(--space-6)}
+.prose p{margin:1em 0; color:var(--text)}
+.prose h2{margin-top:1.6em}
+.prose ul{padding-left:1.2em}
+.hero{
+  padding:var(--space-8) 0 var(--space-6);
+  background:linear-gradient(180deg, var(--surface) 0, var(--surface) 60%, var(--surface-2) 100%);
+  border-bottom:1px solid var(--border);
+}
+.badge{font-size:12px; padding:4px 8px; border:1px solid var(--red); border-radius:999px; color:var(--red); font-weight:800}
+
+blockquote{border-left:4px solid var(--red); padding-left:12px; color:var(--text); margin:1em 0}
+code{background:var(--pill); padding:2px 6px; border-radius:6px}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0F1011;
+    --text:#F6F7F8;
+    --muted:#B1B4BA;
+    --surface:#16171A;
+    --surface-2:#121315;
+    --border:#2A2E34;
+    --pill:#1F2227;
+  }
+  .card{ box-shadow:none; }
+  .table-wrap { width:100%; overflow:auto; }
+.table { width:100%; border-collapse: collapse; }
+.table th, .table td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.table th { text-align:left; font-weight:800; }
+.table-actions { display:flex; gap:8px; justify-content:flex-end; }
+
+}
