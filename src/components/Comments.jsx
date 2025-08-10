@@ -1,75 +1,65 @@
 import { useEffect, useMemo, useState } from 'react'
-
-function keyFor(slug){ return `comments:${slug}` }
+import { supabase } from '../lib/supabase.js'
 
 export default function Comments({ slug, postTitle }) {
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [body, setBody] = useState('')
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(keyFor(slug))
-      setItems(raw ? JSON.parse(raw) : [])
-    } catch { /* ignore */ }
-  }, [slug])
-
-  function save(next){
-    setItems(next)
-    localStorage.setItem(keyFor(slug), JSON.stringify(next))
+  async function load(){
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('post_slug', slug)
+      .order('ts', { ascending:false })
+    if(!error) setItems(data || [])
+    setLoading(false)
   }
+  useEffect(()=>{ load() },[slug])
 
-  function submit(e){
+  async function submit(e){
     e.preventDefault()
-    const trimmed = body.trim()
-    if (!name.trim() || !trimmed) return
-    const item = {
-      id: crypto.randomUUID(),
+    if(!name.trim() || !body.trim()) return
+    const { data, error } = await supabase.from('comments').insert({
+      post_slug: slug,
+      post_title: postTitle,
       name: name.trim(),
-      email: email.trim(),
-      body: trimmed.slice(0, 1000), // simple guard
-      ts: Date.now()
+      email: email.trim() || null,
+      body: body.trim().slice(0,1000)
+    }).select().single()
+    if(!error && data){
+      setItems(prev => [data, ...prev])
+      setBody('')
     }
-    const next = [item, ...items]
-    save(next)
-    setBody('')
   }
 
-  function remove(id){
-    const next = items.filter(i => i.id !== id)
-    save(next)
+  async function remove(id){
+    const { error } = await supabase.from('comments').delete().eq('id', id)
+    if(!error) setItems(prev => prev.filter(c => c.id !== id))
   }
 
   const csv = useMemo(()=>{
     const header = 'post_slug,post_title,name,email,comment,timestamp\n'
-    const esc = (s)=> `"${String(s).replace(/"/g,'""')}"`
-    const rows = items
-      .slice()
-      .reverse()
-      .map(i => [slug, postTitle || '', i.name, i.email, i.body, new Date(i.ts).toISOString()]
-        .map(esc).join(','))
-      .join('\n')
+    const rows = items.slice().reverse().map(i =>
+      [slug, postTitle || '', i.name, i.email || '', i.body, new Date(i.ts).toISOString()]
+        .map(q).join(',')
+    ).join('\n')
     return header + rows
   },[items, slug, postTitle])
-
   function downloadCSV(){
     const blob = new Blob([csv], { type:'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${slug}-comments.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const url = URL.createObjectURL(blob); const a = document.createElement('a')
+    a.href = url; a.download = `${slug}-comments.csv`; a.click(); URL.revokeObjectURL(url)
   }
 
   return (
     <section className="card stack" aria-labelledby="comments">
       <div className="cluster" style={{justifyContent:'space-between', alignItems:'baseline'}}>
         <h3 id="comments" style={{margin:0}}>Comments ({items.length})</h3>
-        {items.length > 0 && (
-          <button className="btn secondary" onClick={downloadCSV}>Export Comments CSV</button>
-        )}
+        {items.length > 0 && <button className="btn secondary" onClick={downloadCSV}>Export Comments CSV</button>}
       </div>
 
       <form className="stack" onSubmit={submit}>
@@ -85,8 +75,10 @@ export default function Comments({ slug, postTitle }) {
           <span className="kicker">Comment</span>
           <textarea className="input" rows="5" value={body} onChange={e=>setBody(e.target.value)} required />
         </label>
-        <button className="btn" type="submit">Post comment</button>
+        <button className="btn" type="submit" disabled={loading}>Post comment</button>
       </form>
+
+      {loading && <p className="meta">Loading…</p>}
 
       {items.length > 0 && (
         <ul className="stack" style={{margin:0, padding:0, listStyle:'none'}}>
@@ -110,3 +102,4 @@ export default function Comments({ slug, postTitle }) {
     </section>
   )
 }
+function q(s){ return `"${String(s??'').replace(/"/g,'""')}"` }

@@ -1,86 +1,53 @@
 import { useEffect, useMemo, useState } from 'react'
-
-function storageKey(slug){ return `rsvps:${slug}` }
-const GLOBAL_KEY = 'rsvps:ALL'
-
-function loadJSON(key, fallback){
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)) }
-  catch { return fallback }
-}
+import { supabase } from '../lib/supabase.js'
 
 export default function RSVPForm({ event }){
   const [name,setName] = useState('')
   const [email,setEmail] = useState('')
   const [items,setItems] = useState([])
-  const [allCount, setAllCount] = useState(0)
+  const [loading,setLoading] = useState(true)
 
-  useEffect(()=>{ // load per-event + global count
-    setItems(loadJSON(storageKey(event.slug), []))
-    const all = loadJSON(GLOBAL_KEY, [])
-    setAllCount(all.length)
-  },[event.slug])
-
-  function savePerEvent(list){
-    setItems(list)
-    localStorage.setItem(storageKey(event.slug), JSON.stringify(list))
+  async function load(){
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('rsvps')
+      .select('*')
+      .eq('event_slug', event.slug)
+      .order('ts', { ascending:false })
+    if(!error) setItems(data || [])
+    setLoading(false)
   }
+  useEffect(()=>{ load() },[event.slug])
 
-  function appendGlobal({ name, email, ts }){
-    const all = loadJSON(GLOBAL_KEY, [])
-    all.push({
-      id: crypto.randomUUID(),
-      eventSlug: event.slug,
-      eventTitle: event.title,
-      name, email, ts
-    })
-    localStorage.setItem(GLOBAL_KEY, JSON.stringify(all))
-    setAllCount(all.length)
-  }
-
-  function submit(e){
+  async function submit(e){
     e.preventDefault()
     if(!name || !email) return
-    const ts = Date.now()
-    const next = [...items, { id: crypto.randomUUID(), name, email, ts }]
-    savePerEvent(next)
-    appendGlobal({ name, email, ts })
-    setName(''); setEmail('')
+    const { data, error } = await supabase.from('rsvps').insert({
+      event_slug: event.slug,
+      event_title: event.title,
+      name, email
+    }).select().single()
+    if(!error && data){
+      setItems(prev => [data, ...prev])
+      setName(''); setEmail('')
+    }
   }
 
-  function remove(id){
-    const next = items.filter(x=>x.id!==id)
-    savePerEvent(next)
-    // (Optional) also remove from global by matching (name/email + event),
-    // but we’ll keep global as an audit log for now.
+  async function remove(id){
+    const { error } = await supabase.from('rsvps').delete().eq('id', id)
+    if(!error) setItems(prev => prev.filter(x=>x.id!==id))
   }
 
-  const csvPerEvent = useMemo(()=>{
+  const csv = useMemo(()=>{
     const header = 'name,email,timestamp\n'
-    const rows = items.map(i => `${escape(i.name)},${escape(i.email)},${new Date(i.ts).toISOString()}`).join('\n')
+    const rows = items.map(i => `${q(i.name)},${q(i.email)},${q(new Date(i.ts).toISOString())}`).join('\n')
     return header + rows
   },[items])
-
-  function download(blob, filename){
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   function downloadCSV(){
-    download(new Blob([csvPerEvent], { type:'text/csv' }), `${event.slug}-rsvps.csv`)
-  }
-
-  function downloadMasterCSV(){
-    const all = loadJSON(GLOBAL_KEY, [])
-    const header = 'event_slug,event_title,name,email,timestamp\n'
-    const rows = all.map(i =>
-      [i.eventSlug, i.eventTitle, i.name, i.email, new Date(i.ts).toISOString()]
-        .map(s => `"${String(s).replace(/"/g,'""')}"`).join(',')
-    ).join('\n')
-    download(new Blob([header + rows], { type:'text/csv' }), `all-rsvps.csv`)
+    const blob = new Blob([csv], { type:'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = `${event.slug}-rsvps.csv`; a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -95,27 +62,22 @@ export default function RSVPForm({ event }){
           <span className="kicker">Email</span>
           <input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
         </label>
-        <button className="btn" type="submit">I’m going</button>
+        <button className="btn" type="submit" disabled={loading}>I’m going</button>
       </form>
+
+      {loading && <p className="meta">Loading…</p>}
 
       {items.length>0 && (
         <div className="stack">
           <div className="hr"></div>
           <div className="cluster" style={{justifyContent:'space-between', alignItems:'baseline'}}>
             <h4 style={{margin:0}}>Responses ({items.length})</h4>
-            <div className="cluster">
-              <button className="btn secondary" onClick={downloadCSV}>Export This Event CSV</button>
-              <button className="btn secondary" onClick={downloadMasterCSV} title={`Total RSVPs across all events: ${allCount}`}>
-                Export Master CSV ({allCount})
-              </button>
-            </div>
+            <button className="btn secondary" onClick={downloadCSV}>Export CSV</button>
           </div>
           <ul className="stack" style={{margin:0, padding:0, listStyle:'none'}}>
             {items.map(i=>(
               <li key={i.id} className="cluster" style={{justifyContent:'space-between'}}>
-                <div>
-                  <strong>{i.name}</strong> · <span className="meta">{i.email}</span>
-                </div>
+                <div><strong>{i.name}</strong> · <span className="meta">{i.email}</span></div>
                 <button className="btn secondary" onClick={()=>remove(i.id)} type="button">Remove</button>
               </li>
             ))}
@@ -125,3 +87,4 @@ export default function RSVPForm({ event }){
     </section>
   )
 }
+function q(s){ return `"${String(s??'').replace(/"/g,'""')}"` }
