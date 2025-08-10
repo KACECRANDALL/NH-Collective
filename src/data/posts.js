@@ -1,5 +1,5 @@
 import { marked } from 'marked'
-import { parseFrontMatter } from '../utils/frontMatter.js'
+import { parseFrontMatter } from './frontMatter.js'
 
 const files = import.meta.glob('../../content/posts/*.md', {
   query: '?raw',
