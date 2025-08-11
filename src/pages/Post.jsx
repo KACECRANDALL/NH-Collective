@@ -1,8 +1,9 @@
 
+
 import DOMPurify from 'dompurify'
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { listPosts, getPostBySlug } from '../data/postsApi.js'
+import { listPosts, getPostBySlug } from '../data/posts.js'
 
 export default function Post() {
   const { slug } = useParams()
@@ -31,7 +32,7 @@ export default function Post() {
       <p className="kicker">History Blog</p>
       <h1>{post.title}</h1>
       <div className="meta">
-        {new Date(post.date).toLocaleDateString()}
+        {post.date ? new Date(post.date).toLocaleDateString() : ''}
         {post.tags?.length ? ` · ${post.tags.join(' • ')}` : ''}
       </div>
 

@@ -1,7 +1,8 @@
 
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listPosts } from '../data/postsApi.js'
+import { listPosts } from '../data/posts.js'
 
 export default function Blog() {
   const [posts, setPosts] = useState([])
@@ -22,7 +23,7 @@ export default function Blog() {
           <li key={p.slug} className="card stack" style={{ padding: 'var(--space-4)' }}>
             <h3><Link to={`/blog/${p.slug}`}>{p.title}</Link></h3>
             <div className="meta">
-              {new Date(p.date).toLocaleDateString()}
+              {p.date ? new Date(p.date).toLocaleDateString() : ''}
               {p.tags?.length ? ` · ${p.tags.join(' • ')}` : ''}
             </div>
             {p.excerpt ? <p>{p.excerpt}</p> : null}
