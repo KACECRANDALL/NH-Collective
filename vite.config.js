@@ -5,3 +5,4 @@ export default defineConfig({
   plugins: [react()],
   base: '/', // use '/<REPO_NAME>/' if NOT using a custom domain
 })
+
