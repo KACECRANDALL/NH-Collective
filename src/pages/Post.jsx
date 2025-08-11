@@ -1,30 +1,30 @@
+
 import DOMPurify from 'dompurify'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getAllPosts, getPostBySlug } from '../data/posts.js'
-import Comments from '../components/Comments.jsx'
+import { listPosts, getPostBySlug } from '../data/postsApi.js'
 
-export default function Post(){
+export default function Post() {
   const { slug } = useParams()
-  const post = getPostBySlug(slug)
-  const posts = getAllPosts()
+  const [post, setPost] = useState(null)
+  const [all, setAll] = useState([])
+  const [err, setErr] = useState(null)
 
-  useEffect(()=>{
-    document.title = post ? `${post.title} · History & Events` : 'Post not found'
-  },[post])
+  useEffect(() => {
+    getPostBySlug(slug).then(setPost).catch(setErr)
+    listPosts().then(setAll).catch(() => {})
+  }, [slug])
 
-  if(!post){
-    return (
-      <div className="stack">
-        <h1>Post not found</h1>
-        <p><Link to="/blog">Back to blog</Link></p>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (post) document.title = `${post.title} · History & Events`
+  }, [post])
 
-  const idx = posts.findIndex(p => p.slug === post.slug)
-  const prev = posts[idx + 1]
-  const next = posts[idx - 1]
+  if (err) return <div className="stack"><h1>Post</h1><p className="meta">Couldn’t load.</p></div>
+  if (!post) return <p className="meta">Loading…</p>
+
+  const idx = all.findIndex(p => p.slug === post.slug)
+  const prev = idx >= 0 ? all[idx + 1] : null
+  const next = idx >= 0 ? all[idx - 1] : null
 
   return (
     <article className="stack">
@@ -36,32 +36,13 @@ export default function Post(){
       </div>
 
       <div className="hr"></div>
-
-      <div
-        className="prose"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.html) }}
-      />
-
+      <div className="prose" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.html) }} />
       <div className="hr"></div>
 
-      {/* Comments */}
-      <Comments slug={post.slug} postTitle={post.title} />
-
-      <div className="hr"></div>
-
-      {/* Prev / Next */}
       <nav className="cluster" aria-label="Post navigation">
-        {prev && (
-          <Link className="btn secondary" to={`/blog/${prev.slug}`}>
-            ← {prev.title}
-          </Link>
-        )}
+        {prev && <Link className="btn secondary" to={`/blog/${prev.slug}`}>← {prev.title}</Link>}
         <span style={{ flex: 1 }} />
-        {next && (
-          <Link className="btn secondary" to={`/blog/${next.slug}`}>
-            {next.title} →
-          </Link>
-        )}
+        {next && <Link className="btn secondary" to={`/blog/${next.slug}`}>{next.title} →</Link>}
       </nav>
     </article>
   )

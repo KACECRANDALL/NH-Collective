@@ -1,36 +1,34 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getAllPosts, getAllTags } from '../data/posts.js'
-import SearchBar from '../components/SearchBar.jsx'
-import TagPills from '../components/TagPills.jsx'
-import PostCard from '../components/PostCard.jsx'
 
-export default function Blog(){
-  useEffect(()=>{ document.title = 'Blog · History & Events' },[])
-  const [q,setQ] = useState('')
-  const [tag,setTag] = useState(null)
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { listPosts } from '../data/postsApi.js'
 
-  const posts = getAllPosts()
-  const tags = getAllTags()
+export default function Blog() {
+  const [posts, setPosts] = useState([])
+  const [err, setErr] = useState(null)
 
-  const filtered = useMemo(()=>{
-    return posts.filter(p=>{
-      const matchQ = q.trim() === '' || (p.title + ' ' + p.excerpt + ' ' + (p.tags||[]).join(' ')).toLowerCase().includes(q.toLowerCase())
-      const matchTag = tag===null || p.tags?.includes(tag)
-      return matchQ && matchTag
-    })
-  },[posts,q,tag])
+  useEffect(() => {
+    listPosts().then(setPosts).catch(setErr)
+  }, [])
+
+  if (err) return <p className="meta">Couldn’t load posts.</p>
+  if (!posts.length) return <p className="meta">Loading…</p>
 
   return (
     <div className="stack">
       <h1>Blog</h1>
-      <div className="stack">
-        <SearchBar value={q} onChange={setQ} placeholder="Search posts"/>
-        <TagPills tags={tags} active={tag} onClick={setTag}/>
-      </div>
-      <div className="grid">
-        {filtered.map(p => <PostCard key={p.slug} post={p} />)}
-      </div>
-      {filtered.length===0 && <p className="meta">No posts match your filters.</p>}
+      <ul className="stack" style={{ listStyle: 'none', padding: 0 }}>
+        {posts.map(p => (
+          <li key={p.slug} className="card stack" style={{ padding: 'var(--space-4)' }}>
+            <h3><Link to={`/blog/${p.slug}`}>{p.title}</Link></h3>
+            <div className="meta">
+              {new Date(p.date).toLocaleDateString()}
+              {p.tags?.length ? ` · ${p.tags.join(' • ')}` : ''}
+            </div>
+            {p.excerpt ? <p>{p.excerpt}</p> : null}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
